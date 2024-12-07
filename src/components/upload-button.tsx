@@ -1,10 +1,12 @@
 'use client'
 
 import { Upload } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useState } from 'react'
 
 export function UploadButton() {
+  const router = useRouter()
   const { data: session } = useSession()
   const [isUploading, setIsUploading] = useState(false)
 
@@ -25,7 +27,8 @@ export function UploadButton() {
         throw new Error('Upload failed')
       }
 
-      // Refresh the document list or show success message
+      // Refresh the page to show the new document
+      router.refresh()
     } catch (error) {
       console.error('Upload error:', error)
       alert('Failed to upload file')

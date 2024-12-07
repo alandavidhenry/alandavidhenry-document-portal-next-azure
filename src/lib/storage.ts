@@ -15,14 +15,18 @@ export async function generateSasToken(
   const blobClient = containerClient.getBlobClient(blobName)
 
   const startsOn = new Date()
+  startsOn.setMinutes(startsOn.getMinutes() - 1)
+
   const expiresOn = new Date(startsOn)
-  expiresOn.setMinutes(startsOn.getMinutes() + 15)
+  expiresOn.setMinutes(startsOn.getMinutes() + 30)
 
   const sasUrl = await blobClient.generateSasUrl({
     permissions: BlobSASPermissions.parse('r'),
     startsOn,
     expiresOn,
-    protocol: SASProtocol.Https
+    protocol: SASProtocol.Https,
+    cacheControl: 'no-cache',
+    contentDisposition: `attachment; filename="${blobName}"`
   })
 
   return sasUrl

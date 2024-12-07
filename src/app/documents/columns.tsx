@@ -3,6 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { FileIcon } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { useState } from 'react'
 
 export type Document = {
   id: string
@@ -12,20 +13,22 @@ export type Document = {
   size: string
 }
 
-// Create a separate component for the cell
 function DocumentNameCell({ name }: { name: string }) {
   const { data: session } = useSession()
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const handleDownload = async () => {
-    if (!session) return
+    if (!session || isDownloading) return
 
+    setIsDownloading(true)
     try {
       const response = await fetch(
         `/api/documents/download?name=${encodeURIComponent(name)}`
       )
 
       if (!response.ok) {
-        throw new Error('Download failed')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Download failed')
       }
 
       const { url } = await response.json()
@@ -33,12 +36,15 @@ function DocumentNameCell({ name }: { name: string }) {
       const link = document.createElement('a')
       link.href = url
       link.download = name
+      link.style.display = 'none'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
     } catch (error) {
       console.error('Download error:', error)
-      alert('Failed to download file')
+      alert(error instanceof Error ? error.message : 'Failed to download file')
+    } finally {
+      setIsDownloading(false)
     }
   }
 
@@ -48,15 +54,14 @@ function DocumentNameCell({ name }: { name: string }) {
       <button
         onClick={handleDownload}
         className='hover:underline text-blue-600 disabled:text-gray-400'
-        disabled={!session}
+        disabled={!session || isDownloading}
       >
-        {name}
+        {isDownloading ? 'Downloading...' : name}
       </button>
     </div>
   )
 }
 
-// Use the component in the columns definition
 export const columns: ColumnDef<Document>[] = [
   {
     accessorKey: 'name',
