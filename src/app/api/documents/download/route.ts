@@ -20,10 +20,25 @@ export async function GET(request: NextRequest) {
   try {
     const sasUrl = await generateSasToken(
       process.env.AZURE_STORAGE_CONTAINER_NAME!,
-      name
+      name,
+      {
+        permissions: 'r',
+        startsOn: new Date(Date.now() - 60 * 1000), // Start 1 minute ago
+        expiresOn: new Date(Date.now() + 30 * 60 * 1000), // Expire in 30 minutes
+        contentDisposition: `inline; filename="${name}"` // Changed to inline for viewing
+      }
     )
 
-    return NextResponse.json({ url: sasUrl })
+    return NextResponse.json(
+      { url: sasUrl },
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      }
+    )
   } catch (error) {
     console.error('Download error:', error)
     return NextResponse.json(
