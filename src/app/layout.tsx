@@ -1,5 +1,6 @@
 import { Inter } from 'next/font/google'
 
+import { NavBar } from '@/components/nav-bar'
 import { AuthProvider } from '@/components/providers/session-provider'
 
 import type { Metadata } from 'next'
@@ -21,9 +22,12 @@ export default function RootLayout({
     <html lang='en'>
       <body className={inter.className}>
         <AuthProvider>
-          <main className='min-h-screen bg-background'>
-            <div className='container mx-auto py-4'>{children}</div>
-          </main>
+          <div className='min-h-screen bg-background flex flex-col'>
+            <NavBar />
+            <main className='flex-1'>
+              <div className='container mx-auto py-4'>{children}</div>
+            </main>
+          </div>
         </AuthProvider>
       </body>
     </html>
