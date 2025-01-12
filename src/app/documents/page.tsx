@@ -4,6 +4,8 @@ import { listBlobs } from '@/lib/list-blobs'
 import { columns } from './columns'
 import { DataTable } from './data-table'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DocumentsPage() {
   // Fetch documents from Azure Storage
   const documents = await listBlobs()
