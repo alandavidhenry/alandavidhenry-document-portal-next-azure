@@ -33,15 +33,14 @@ jobs:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
 
-      - name: Zip artifact for deployment
+      - name: Create deployment package
         run: |
-          cd .next
-          zip -r ../nextjs-app.zip *
-          cd ..
-          cd public
-          zip -r ../nextjs-app.zip *
-          cd ..
-          zip nextjs-app.zip package.json package-lock.json
+          # Remove development dependencies
+          rm -rf node_modules
+          # Install production dependencies only
+          npm ci --only=production
+          # Create efficient zip
+          zip -r nextjs-app.zip .next node_modules package.json package-lock.json public
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
@@ -49,3 +48,9 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: nextjs-app.zip
+
+      - name: Post-deployment cleanup
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group document-portal-rg
