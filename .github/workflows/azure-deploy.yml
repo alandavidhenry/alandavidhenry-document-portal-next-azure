@@ -1,7 +1,7 @@
 name: Deploy to Azure
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 env:
   AZURE_WEBAPP_NAME: document-portal-app
@@ -38,10 +38,10 @@ jobs:
           # Remove dev dependencies and source maps
           rm -rf node_modules
           rm -rf .next/cache
-
+          
           # Install only production dependencies
           npm ci --only=production --ignore-scripts
-
+          
           # Create deployment package
           zip -r deploy.zip .next node_modules package.json package-lock.json public
 
@@ -52,8 +52,11 @@ jobs:
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: deploy.zip
 
-      - name: Clean up and restart
-        uses: azure/CLI@v1
+      - name: Login to Azure
+        uses: azure/login@v1
         with:
-          inlineScript: |
-            az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group document-portal-rg
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Restart App Service
+        run: |
+          az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group document-portal-rg
