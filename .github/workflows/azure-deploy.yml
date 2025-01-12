@@ -38,20 +38,12 @@ jobs:
           # Remove dev dependencies and source maps
           rm -rf node_modules
           rm -rf .next/cache
-          rm -rf .next/**/*.map
 
           # Install only production dependencies
           npm ci --only=production --ignore-scripts
 
-          # Create standalone output
-          mkdir -p .next/standalone
-          cp -r .next/static .next/standalone/.next/
-          cp -r public .next/standalone/
-          cp package.json .next/standalone/
-
-          # Create efficient deployment package
-          cd .next/standalone
-          zip -r ../../deploy.zip .
+          # Create deployment package
+          zip -r deploy.zip .next node_modules package.json package-lock.json public
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
