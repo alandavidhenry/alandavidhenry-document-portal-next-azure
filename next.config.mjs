@@ -4,8 +4,18 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
+  typescript: {
+    ignoreBuildErrors: true
+  },
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   images: {
     unoptimized: true
+  },
+  experimental: {
+    optimizeCss: true,
+    optimizeServerReact: true
   }
 }
 

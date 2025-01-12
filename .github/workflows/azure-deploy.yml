@@ -1,7 +1,7 @@
 name: Deploy to Azure
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 env:
   AZURE_WEBAPP_NAME: document-portal-app
@@ -33,23 +33,34 @@ jobs:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
 
-      - name: Create deployment package
+      - name: Optimize for deployment
         run: |
-          # Remove development dependencies
+          # Remove dev dependencies and source maps
           rm -rf node_modules
-          # Install production dependencies only
-          npm ci --only=production
-          # Create efficient zip
-          zip -r nextjs-app.zip .next node_modules package.json package-lock.json public
+          rm -rf .next/cache
+          rm -rf .next/**/*.map
+
+          # Install only production dependencies
+          npm ci --only=production --ignore-scripts
+
+          # Create standalone output
+          mkdir -p .next/standalone
+          cp -r .next/static .next/standalone/.next/
+          cp -r public .next/standalone/
+          cp package.json .next/standalone/
+
+          # Create efficient deployment package
+          cd .next/standalone
+          zip -r ../../deploy.zip .
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: nextjs-app.zip
+          package: deploy.zip
 
-      - name: Post-deployment cleanup
+      - name: Clean up and restart
         uses: azure/CLI@v1
         with:
           inlineScript: |
