@@ -3,15 +3,12 @@ const nextConfig = {
   output: 'standalone',
   compress: true,
   poweredByHeader: false,
-  generateEtags: false,
+  generateEtags: true,
   typescript: {
-    ignoreBuildErrors: true
+    ignoreBuildErrors: false
   },
   eslint: {
-    ignoreDuringBuilds: true
-  },
-  images: {
-    unoptimized: true
+    ignoreDuringBuilds: false
   }
 }
 
