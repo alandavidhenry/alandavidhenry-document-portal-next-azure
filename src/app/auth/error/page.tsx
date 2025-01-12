@@ -1,10 +1,15 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 export default function ErrorPage() {
   const searchParams = useSearchParams()
-  const error = searchParams.get('error')
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setError(searchParams.get('error'))
+  }, [searchParams])
 
   return (
     <div className='flex min-h-screen flex-col items-center justify-center p-4'>
@@ -14,7 +19,7 @@ export default function ErrorPage() {
         </h2>
         <div className='rounded-md bg-red-50 p-4'>
           <p className='text-sm text-red-800'>
-            Error: {error}
+            Error: {error || 'Unknown error occurred'}
           </p>
         </div>
       </div>
