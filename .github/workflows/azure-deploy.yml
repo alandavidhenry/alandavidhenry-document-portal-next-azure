@@ -5,10 +5,10 @@ on:
     branches: [ main ]
 
 env:
-  AZURE_CONTAINER_REGISTRY: "documentportalcr"
-  CONTAINER_APP_NAME: "document-portal"
+  AZURE_CONTAINER_REGISTRY: "documentportalnewcr"
+  CONTAINER_APP_NAME: "document-portal-new"
   RESOURCE_GROUP: "document-portal-rg"
-  IMAGE_NAME: "document-portal"
+  IMAGE_NAME: "document-portal-new"
 
 jobs:
   build-and-deploy:
