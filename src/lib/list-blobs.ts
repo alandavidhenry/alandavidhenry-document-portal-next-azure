@@ -10,10 +10,18 @@ export interface BlobItem {
 
 export async function listBlobs(): Promise<BlobItem[]> {
   const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING!
+  if (!connectionString) {
+    throw new Error('Storage connection string is not defined')
+  }
+
   const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME!
+  if (!containerName) {
+    throw new Error('Storage container name is not defined')
+  }
 
   const blobServiceClient =
     BlobServiceClient.fromConnectionString(connectionString)
+
   const containerClient = blobServiceClient.getContainerClient(containerName)
 
   const blobs: BlobItem[] = []
