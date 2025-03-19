@@ -22,13 +22,19 @@ jobs:
     - name: Build
       run: npm run build
       
-    - name: Package for deployment
+    - name: Prepare deployment package
       run: |
-        # Create a deployment package with the standalone build
+        # Create deployment package from standalone output
         mkdir -p deploy
         cp -r .next/standalone/* deploy/
         cp -r .next/static deploy/.next/
         cp -r public deploy/
+        
+        # Create a file to indicate this is a pre-built app (skip build)
+        touch deploy/.skipNodeModulesExtraction
+        
+        # Optional: Add a deploy.txt file with timestamp
+        echo "Deployed on $(date)" > deploy/deploy.txt
 
     - name: Login to Azure
       uses: azure/login@v1
