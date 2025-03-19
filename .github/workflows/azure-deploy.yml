@@ -24,17 +24,26 @@ jobs:
       
     - name: Prepare deployment package
       run: |
-        # Create deployment package from standalone output
+        # Create deployment package
         mkdir -p deploy
+        # Copy the standalone output (which includes server.js)
         cp -r .next/standalone/* deploy/
-        cp -r .next/static deploy/.next/
+        # Create required directory structure
+        mkdir -p deploy/.next/
+        # Copy build ID and other required files
+        cp -r .next/build-manifest.json deploy/.next/
+        cp -r .next/prerender-manifest.json deploy/.next/
+        cp -r .next/required-server-files.json deploy/.next/
+        cp -r .next/routes-manifest.json deploy/.next/
+        cp -r .next/build-id.txt deploy/.next/
+        cp -r .next/server deploy/.next/
+        # Copy static files to the correct location
+        mkdir -p deploy/.next/static
+        cp -r .next/static/* deploy/.next/static/
+        # Copy public directory
         cp -r public deploy/
-        
-        # Create a file to indicate this is a pre-built app (skip build)
+        # Create a skip build file
         touch deploy/.skipNodeModulesExtraction
-        
-        # Optional: Add a deploy.txt file with timestamp
-        echo "Deployed on $(date)" > deploy/deploy.txt
 
     - name: Login to Azure
       uses: azure/login@v1
