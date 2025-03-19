@@ -24,24 +24,26 @@ jobs:
       
     - name: Prepare deployment package
       run: |
-        # Create deployment package
+        # Create deployment package - simpler approach
         mkdir -p deploy
-        # Copy the standalone output (which includes server.js)
-        cp -r .next/standalone/* deploy/
-        # Create required directory structure
-        mkdir -p deploy/.next/
-        # Copy build ID and other required files
-        cp -r .next/build-manifest.json deploy/.next/
-        cp -r .next/prerender-manifest.json deploy/.next/
-        cp -r .next/required-server-files.json deploy/.next/
-        cp -r .next/routes-manifest.json deploy/.next/
-        cp -r .next/build-id.txt deploy/.next/
-        cp -r .next/server deploy/.next/
-        # Copy static files to the correct location
-        mkdir -p deploy/.next/static
-        cp -r .next/static/* deploy/.next/static/
-        # Copy public directory
+        
+        # Copy the entire .next directory
+        cp -r .next deploy/
+        
+        # Copy package.json and package-lock.json for dependencies
+        cp package.json deploy/
+        cp package-lock.json deploy/
+        
+        # Copy public directory for static assets
         cp -r public deploy/
+        
+        # Create a start script that uses next start
+        echo '#!/bin/bash
+        cd /home/site/wwwroot
+        npx next start -p 8080
+        ' > deploy/start.sh
+        chmod +x deploy/start.sh
+        
         # Create a skip build file
         touch deploy/.skipNodeModulesExtraction
 
