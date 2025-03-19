@@ -168,16 +168,16 @@ resource "azurerm_linux_web_app" "main" {
   }
 
   app_settings = {
-    "WEBSITES_PORT"                  = "8080"
-    "AZURE_AD_CLIENT_ID"             = azuread_application.document_portal.client_id
-    "AZURE_AD_TENANT_ID"             = data.azurerm_client_config.current.tenant_id
-    "AZURE_AD_CLIENT_SECRET"         = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.ad_client_secret.versionless_id})"
-    "STORAGE_CONNECTION_STRING"      = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.storage_connection_string.versionless_id})"
-    "AZURE_STORAGE_CONTAINER_NAME"   = azurerm_storage_container.documents.name
-    "NEXTAUTH_URL"                   = "https://${azurecaf_name.app_service.result}.azurewebsites.net"
-    "NEXTAUTH_SECRET"                = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.nextauth_secret.versionless_id})"
-    "WEBSITE_NODE_DEFAULT_VERSION"   = "~20"
-    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    "WEBSITES_PORT"                   = "8080"
+    "AZURE_AD_CLIENT_ID"              = azuread_application.document_portal.client_id
+    "AZURE_AD_TENANT_ID"              = data.azurerm_client_config.current.tenant_id
+    "AZURE_AD_CLIENT_SECRET"          = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.ad_client_secret.versionless_id})"
+    "AZURE_STORAGE_CONNECTION_STRING" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.storage_connection_string.versionless_id})"
+    "AZURE_STORAGE_CONTAINER_NAME"    = azurerm_storage_container.documents.name
+    "NEXTAUTH_URL"                    = "https://${azurecaf_name.app_service.result}.azurewebsites.net"
+    "NEXTAUTH_SECRET"                 = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.nextauth_secret.versionless_id})"
+    "WEBSITE_NODE_DEFAULT_VERSION"    = "~20"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT"  = "true"
   }
 
   tags = local.common_tags
