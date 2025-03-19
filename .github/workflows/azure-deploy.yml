@@ -22,6 +22,14 @@ jobs:
     - name: Build
       run: npm run build
       
+    - name: Package for deployment
+      run: |
+        # Create a deployment package with the standalone build
+        mkdir -p deploy
+        cp -r .next/standalone/* deploy/
+        cp -r .next/static deploy/.next/
+        cp -r public deploy/
+
     - name: Login to Azure
       uses: azure/login@v1
       with:
@@ -31,4 +39,4 @@ jobs:
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ secrets.AZURE_APP_NAME }}
-        package: .next/standalone
+        package: deploy
