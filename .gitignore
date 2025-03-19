@@ -56,3 +56,5 @@ terraform.rc
 crash.log
 crash.*.log
 .terraform.lock.hcl
+
+github_pat.txt

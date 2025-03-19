@@ -1,33 +1,37 @@
-# Builder stage
+# Use Node.js LTS
 FROM node:20-alpine AS builder
+
+# Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# Copy source files
+# Copy app source
 COPY . .
 
-# Build the application
+# Build the Next.js app
 RUN npm run build
 
-# Runner stage
+# Production image
 FROM node:20-alpine AS runner
+
 WORKDIR /app
 
-ENV NODE_ENV production
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
 
-# Copy necessary files from builder
+# Copy built app
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/next.config.mjs ./
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
 
-# Set user for security
-USER node
+# Expose port
+EXPOSE 8080
 
-EXPOSE 3000
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["node", "server.js"]
+# Start the app
+CMD ["npm", "start"]

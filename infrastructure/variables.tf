@@ -81,3 +81,15 @@ variable "azure_ad" {
     password_end_date = "2025-12-31T00:00:00Z"
   }
 }
+
+variable "github_username" {
+  description = "GitHub username for container registry"
+  type        = string
+  sensitive   = false
+}
+
+variable "github_token" {
+  description = "GitHub personal access token with package read permissions"
+  type        = string
+  sensitive   = true
+}

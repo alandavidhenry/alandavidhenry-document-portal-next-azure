@@ -7,53 +7,39 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
       with:
-        node-version: '20'
-        
-    - name: Install dependencies
-      run: npm ci
-        
-    - name: Build
-      run: npm run build
-      
-    - name: Prepare deployment package
-      run: |
-        # Create deployment package - simpler approach
-        mkdir -p deploy
-        
-        # Copy the entire .next directory
-        cp -r .next deploy/
-        
-        # Copy package.json and package-lock.json for dependencies
-        cp package.json deploy/
-        cp package-lock.json deploy/
-        
-        # Copy public directory for static assets
-        cp -r public deploy/
-        
-        # Create a start script that uses next start
-        echo '#!/bin/bash
-        cd /home/site/wwwroot
-        npx next start -p 8080
-        ' > deploy/start.sh
-        chmod +x deploy/start.sh
-        
-        # Create a skip build file
-        touch deploy/.skipNodeModulesExtraction
-
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ghcr.io/${{ github.repository }}:${{ github.sha }},ghcr.io/${{ github.repository }}:latest
+        cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
+        cache-to: type=inline
+    
     - name: Login to Azure
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-        
-    - name: Deploy to Azure Web App
+    
+    - name: Deploy to Azure App Service
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ secrets.AZURE_APP_NAME }}
-        package: deploy
+        images: ghcr.io/${{ github.repository }}:${{ github.sha }}

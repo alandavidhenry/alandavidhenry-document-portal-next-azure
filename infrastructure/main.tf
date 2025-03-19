@@ -156,12 +156,19 @@ resource "azurerm_linux_web_app" "main" {
 
   site_config {
     application_stack {
-      node_version = "20-lts"
+      docker_image_name        = "ghcr.io/${var.github_username}/${var.project}:latest"
+      docker_registry_url      = "https://ghcr.io"
+      docker_registry_username = var.github_username
+      docker_registry_password = var.github_token
     }
     always_on = contains(["F1", "FREE", "D1"], var.app_service_sku) ? false : true
+
+    health_check_path                 = "/api/health"
+    health_check_eviction_time_in_min = 10
   }
 
   app_settings = {
+    "WEBSITES_PORT"                  = "8080"
     "AZURE_AD_CLIENT_ID"             = azuread_application.document_portal.client_id
     "AZURE_AD_TENANT_ID"             = data.azurerm_client_config.current.tenant_id
     "AZURE_AD_CLIENT_SECRET"         = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.ad_client_secret.versionless_id})"
