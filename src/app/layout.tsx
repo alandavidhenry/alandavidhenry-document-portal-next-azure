@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 
 import { NavBar } from '@/components/nav-bar'
 import { AuthProvider } from '@/components/providers/session-provider'
+import { Toaster } from '@/components/ui/toaster'
 
 import type { Metadata } from 'next'
 import './globals.css'
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children
 }: {
-  children: React.ReactNode
+  readonly children: React.ReactNode
 }) {
   return (
     <html lang='en'>
@@ -28,6 +29,7 @@ export default function RootLayout({
               <div className='container mx-auto py-4'>{children}</div>
             </main>
           </div>
+          <Toaster />
         </AuthProvider>
       </body>
     </html>

@@ -1,12 +1,14 @@
 'use client'
 
 import { ColumnDef } from '@tanstack/react-table'
-import { Download, FileIcon } from 'lucide-react'
+import { Download, FileIcon, QrCode, Share2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useState } from 'react'
 
+import { QrCodeModal } from '@/components/qr-code-modal'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/components/ui/use-toast'
 
 export type Document = {
   id: string
@@ -124,6 +126,114 @@ function DownloadCell({ name }: { name: string }) {
   )
 }
 
+function ShareCell({ name }: { name: string }) {
+  const { data: session } = useSession()
+  const [isSharing, setIsSharing] = useState(false)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [showQrCode, setShowQrCode] = useState(false)
+
+  const generateShareUrl = async (): Promise<string> => {
+    if (shareUrl) return shareUrl
+
+    const response = await fetch(
+      `/api/documents/share?name=${encodeURIComponent(name)}`
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Share link generation failed')
+    }
+
+    const data = await response.json()
+    setShareUrl(data.shareUrl)
+    return data.shareUrl
+  }
+
+  const handleShare = async () => {
+    if (!session || isSharing) return
+
+    setIsSharing(true)
+    try {
+      const url = await generateShareUrl()
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(url)
+      toast({
+        title: 'Link copied to clipboard',
+        description: 'The shareable link has been copied to your clipboard.',
+        duration: 3000
+      })
+    } catch (error) {
+      console.error('Share error:', error)
+      toast({
+        title: 'Failed to generate share link',
+        description:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: 'destructive',
+        duration: 3000
+      })
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
+  const handleShowQrCode = async () => {
+    if (!session || isSharing) return
+
+    setIsSharing(true)
+    try {
+      await generateShareUrl()
+      setShowQrCode(true)
+    } catch (error) {
+      console.error('QR code generation error:', error)
+      toast({
+        title: 'Failed to generate QR code',
+        description:
+          error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: 'destructive',
+        duration: 3000
+      })
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
+  return (
+    <>
+      <div className='flex space-x-1'>
+        <Button
+          variant='ghost'
+          size='icon'
+          onClick={handleShare}
+          disabled={!session || isSharing}
+          title='Copy Share Link'
+        >
+          <Share2 className={isSharing ? 'animate-pulse' : ''} />
+        </Button>
+
+        <Button
+          variant='ghost'
+          size='icon'
+          onClick={handleShowQrCode}
+          disabled={!session || isSharing}
+          title='Generate QR Code'
+        >
+          <QrCode className={isSharing ? 'animate-pulse' : ''} />
+        </Button>
+      </div>
+
+      {/* QR Code Modal */}
+      {showQrCode && shareUrl && (
+        <QrCodeModal
+          url={shareUrl}
+          fileName={name}
+          onClose={() => setShowQrCode(false)}
+        />
+      )}
+    </>
+  )
+}
+
 export const columns: ColumnDef<Document>[] = [
   {
     accessorKey: 'name',
@@ -149,6 +259,11 @@ export const columns: ColumnDef<Document>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => <DownloadCell name={row.getValue('name')} />
+    cell: ({ row }) => (
+      <div className='flex space-x-1'>
+        <DownloadCell name={row.getValue('name')} />
+        <ShareCell name={row.getValue('name')} />
+      </div>
+    )
   }
 ]

@@ -20,6 +20,11 @@ export function NavBar() {
   const { data: session } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
+  // Function to handle sign in with explicit callback URL
+  const handleSignIn = () => {
+    signIn('azure-ad', { callbackUrl: '/documents' })
+  }
+
   return (
     <nav className='bg-background border-b'>
       <div className='container mx-auto px-4'>
@@ -56,7 +61,7 @@ export function NavBar() {
                 Sign Out
               </Button>
             ) : (
-              <Button onClick={() => signIn('azure-ad')}>Sign In</Button>
+              <Button onClick={handleSignIn}>Sign In</Button>
             )}
           </div>
 
@@ -100,7 +105,7 @@ export function NavBar() {
                   Sign Out
                 </Button>
               ) : (
-                <Button className='w-full' onClick={() => signIn('azure-ad')}>
+                <Button className='w-full' onClick={handleSignIn}>
                   Sign In
                 </Button>
               )}
