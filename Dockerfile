@@ -17,8 +17,8 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Set environment variables
-ENV NODE_ENV production
-ENV PORT 8080
+ENV NODE_ENV=production
+ENV PORT=8080
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
