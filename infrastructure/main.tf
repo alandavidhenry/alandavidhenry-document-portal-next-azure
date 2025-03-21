@@ -224,6 +224,8 @@ resource "azurerm_key_vault_access_policy" "app_service" {
 resource "azuread_application" "document_portal" {
   display_name = "${var.project}-${var.environment}"
 
+  sign_in_audience = "AzureADandPersonalMicrosoftAccount"
+
   web {
     redirect_uris = concat(var.redirect_uris, ["https://${azurecaf_name.app_service.result}.azurewebsites.net/api/auth/callback/azure-ad"])
     implicit_grant {
