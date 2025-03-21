@@ -18,7 +18,7 @@ export type Document = {
   size: string
 }
 
-function DocumentNameCell({ name, type }: { name: string; type: string }) {
+function DocumentNameCell({ name, type }: { readonly name: string; readonly type: string }) {
   const router = useRouter()
   const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(false)
@@ -78,7 +78,7 @@ function DocumentNameCell({ name, type }: { name: string; type: string }) {
   )
 }
 
-function DownloadCell({ name }: { name: string }) {
+function DownloadCell({ name }: { readonly name: string }) {
   const { data: session } = useSession()
   const [isDownloading, setIsDownloading] = useState(false)
 
@@ -126,7 +126,7 @@ function DownloadCell({ name }: { name: string }) {
   )
 }
 
-function ShareCell({ name }: { name: string }) {
+function ShareCell({ name }: { readonly name: string }) {
   const { data: session } = useSession()
   const [isSharing, setIsSharing] = useState(false)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
