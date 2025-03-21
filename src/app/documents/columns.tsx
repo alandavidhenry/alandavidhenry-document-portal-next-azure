@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react'
 import { useState } from 'react'
 
 import { QrCodeModal } from '@/components/qr-code-modal'
+import { ShareModal } from '@/components/share-modal'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/use-toast'
 
@@ -18,7 +19,13 @@ export type Document = {
   size: string
 }
 
-function DocumentNameCell({ name, type }: { readonly name: string; readonly type: string }) {
+function DocumentNameCell({
+  name,
+  type
+}: {
+  readonly name: string
+  readonly type: string
+}) {
   const router = useRouter()
   const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(false)
@@ -131,12 +138,13 @@ function ShareCell({ name }: { readonly name: string }) {
   const [isSharing, setIsSharing] = useState(false)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [showQrCode, setShowQrCode] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
-  const generateShareUrl = async (): Promise<string> => {
-    if (shareUrl) return shareUrl
-
+  const generateShareUrl = async (
+    expirationDays: number = 7
+  ): Promise<string> => {
     const response = await fetch(
-      `/api/documents/share?name=${encodeURIComponent(name)}`
+      `/api/documents/share?name=${encodeURIComponent(name)}&expirationDays=${expirationDays}`
     )
 
     if (!response.ok) {
@@ -145,36 +153,12 @@ function ShareCell({ name }: { readonly name: string }) {
     }
 
     const data = await response.json()
-    setShareUrl(data.shareUrl)
     return data.shareUrl
   }
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!session || isSharing) return
-
-    setIsSharing(true)
-    try {
-      const url = await generateShareUrl()
-
-      // Copy to clipboard
-      await navigator.clipboard.writeText(url)
-      toast({
-        title: 'Link copied to clipboard',
-        description: 'The shareable link has been copied to your clipboard.',
-        duration: 3000
-      })
-    } catch (error) {
-      console.error('Share error:', error)
-      toast({
-        title: 'Failed to generate share link',
-        description:
-          error instanceof Error ? error.message : 'An unknown error occurred',
-        variant: 'destructive',
-        duration: 3000
-      })
-    } finally {
-      setIsSharing(false)
-    }
+    setShowShareModal(true)
   }
 
   const handleShowQrCode = async () => {
@@ -182,7 +166,9 @@ function ShareCell({ name }: { readonly name: string }) {
 
     setIsSharing(true)
     try {
-      await generateShareUrl()
+      // Generate a new URL with default 7 days expiration for QR code
+      const url = await generateShareUrl(7)
+      setShareUrl(url)
       setShowQrCode(true)
     } catch (error) {
       console.error('QR code generation error:', error)
@@ -198,6 +184,10 @@ function ShareCell({ name }: { readonly name: string }) {
     }
   }
 
+  const handleShareGenerated = (url: string) => {
+    setShareUrl(url)
+  }
+
   return (
     <>
       <div className='flex space-x-1'>
@@ -206,7 +196,7 @@ function ShareCell({ name }: { readonly name: string }) {
           size='icon'
           onClick={handleShare}
           disabled={!session || isSharing}
-          title='Copy Share Link'
+          title='Share with custom options'
         >
           <Share2 className={isSharing ? 'animate-pulse' : ''} />
         </Button>
@@ -228,6 +218,15 @@ function ShareCell({ name }: { readonly name: string }) {
           url={shareUrl}
           fileName={name}
           onClose={() => setShowQrCode(false)}
+        />
+      )}
+
+      {/* Share Modal with Expiration Options and URL Shortener */}
+      {showShareModal && (
+        <ShareModal
+          fileName={name}
+          onClose={() => setShowShareModal(false)}
+          onShareGenerated={handleShareGenerated}
         />
       )}
     </>

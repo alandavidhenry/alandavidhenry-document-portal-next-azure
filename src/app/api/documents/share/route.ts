@@ -12,20 +12,30 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams
   const name = searchParams.get('name')
+  const expirationDaysParam = searchParams.get('expirationDays')
 
   if (!name) {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 })
   }
 
+  // Parse expiration days (default to 7 if not specified or invalid)
+  let expirationDays = 7
+  if (expirationDaysParam) {
+    const parsed = parseInt(expirationDaysParam)
+    if (!isNaN(parsed) && parsed > 0) {
+      expirationDays = parsed
+    }
+  }
+
   try {
-    // Generate a longer-lived SAS token (e.g., 7 days)
+    // Generate a SAS token with the specified expiration
     const sasUrl = await generateSasToken(
       process.env.AZURE_STORAGE_CONTAINER_NAME!,
       name,
       {
         permissions: 'r', // Read-only permission
         startsOn: new Date(Date.now() - 60 * 1000), // Start 1 minute ago
-        expiresOn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Expire in 7 days
+        expiresOn: new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000), // Expire in specified days
         contentDisposition: `inline; filename="${name}"`
       }
     )

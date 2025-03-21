@@ -1,128 +1,117 @@
 'use client'
 
-import { Viewer, Worker } from '@react-pdf-viewer/core'
-import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
-import { FileDown } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
-
-import '@react-pdf-viewer/core/lib/styles/index.css'
-import '@react-pdf-viewer/default-layout/lib/styles/index.css'
+import { Download, X } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
+import { useState, useEffect } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Toaster } from '@/components/ui/toaster'
 import { toast } from '@/components/ui/use-toast'
 
-export default function SharedDocumentPage() {
-  const searchParams = useSearchParams()
-  const url = searchParams.get('url')
-  const name = searchParams.get('name')
+interface QrCodeModalProps {
+  readonly url: string
+  readonly fileName: string
+  readonly onClose: () => void
+}
 
-  const [pdfData, setPdfData] = useState<Uint8Array | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // Initialize the default layout plugin
-  const defaultLayoutPluginInstance = defaultLayoutPlugin()
+export function QrCodeModal({ url, fileName, onClose }: QrCodeModalProps) {
+  const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    const fetchPdf = async () => {
-      if (!url) {
-        setError('No document URL provided')
-        setIsLoading(false)
-        return
-      }
+    // Small delay for animation
+    setIsVisible(true)
 
-      setIsLoading(true)
-      try {
-        // Fetch the PDF data from the SAS URL
-        const pdfResponse = await fetch(url)
-        if (!pdfResponse.ok) {
-          throw new Error('Failed to fetch document')
-        }
+    // Add escape key handler
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
-        const arrayBuffer = await pdfResponse.arrayBuffer()
-        setPdfData(new Uint8Array(arrayBuffer))
-      } catch (err) {
-        console.error('Error fetching document:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load document')
-      } finally {
-        setIsLoading(false)
-      }
+  // Handle QR code download
+  const handleDownloadQrCode = () => {
+    const svg = document.getElementById('document-qr-code')
+    if (!svg) return
+
+    // Create canvas from SVG
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Set canvas size (making it larger for better quality)
+    canvas.width = 1000
+    canvas.height = 1000
+
+    // Create image from SVG
+    const img = new Image()
+    const svgData = new XMLSerializer().serializeToString(svg)
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+    const svgUrl = URL.createObjectURL(svgBlob)
+
+    img.onload = () => {
+      // Draw white background
+      ctx.fillStyle = 'white'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      // Draw QR code
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+      // Convert to PNG and download
+      const pngUrl = canvas.toDataURL('image/png')
+      const downloadLink = document.createElement('a')
+      downloadLink.href = pngUrl
+      downloadLink.download = `${fileName.replace(/\.[^/.]+$/, '')}-qrcode.png`
+      downloadLink.click()
+
+      // Clean up
+      URL.revokeObjectURL(svgUrl)
+
+      toast({
+        title: 'QR Code downloaded',
+        description: 'The QR code has been saved to your device.',
+        duration: 3000
+      })
     }
 
-    fetchPdf()
-  }, [url])
-
-  const handleDownload = () => {
-    if (!url) return
-
-    const link = document.createElement('a')
-    link.href = url
-    link.download = name ?? 'document'
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    toast({
-      title: 'Download started',
-      description: 'Your document download has started.',
-      duration: 3000
-    })
-  }
-
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className='flex justify-center items-center h-96'>
-          <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary'></div>
-        </div>
-      )
-    }
-
-    if (error) {
-      return (
-        <div className='text-center p-8 text-red-500'>
-          <p className='text-lg font-medium'>Error</p>
-          <p>{error}</p>
-        </div>
-      )
-    }
-
-    if (pdfData && name?.toLowerCase().endsWith('.pdf')) {
-      return (
-        <div style={{ height: '750px' }}>
-          <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'>
-            <Viewer fileUrl={pdfData} plugins={[defaultLayoutPluginInstance]} />
-          </Worker>
-        </div>
-      )
-    }
-
-    // Default case
-    return (
-      <div className='text-center p-8'>
-        <p className='text-lg font-medium'>Document Ready</p>
-        <p>Click the Download button to get this file.</p>
-      </div>
-    )
+    img.src = svgUrl
   }
 
   return (
-    <div className='container mx-auto py-4'>
-      <Card className='w-full shadow-lg'>
-        <CardHeader className='flex flex-row items-center justify-between'>
-          <CardTitle>{name ?? 'Shared Document'}</CardTitle>
-          <Button onClick={handleDownload} variant='outline'>
-            <FileDown className='mr-2 h-4 w-4' />
-            Download
+    <div className='fixed inset-0 z-50 bg-black/50 flex items-center justify-center'>
+      <div
+        className={`bg-background rounded-lg shadow-lg p-6 max-w-md w-full transform transition-all duration-300 ${
+          isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        }`}
+      >
+        <div className='flex justify-between items-center mb-4'>
+          <h2 className='text-xl font-bold'>QR Code for {fileName}</h2>
+          <Button variant='ghost' size='icon' onClick={onClose}>
+            <X className='h-4 w-4' />
           </Button>
-        </CardHeader>
-        <CardContent>{renderContent()}</CardContent>
-      </Card>
-      <Toaster />
+        </div>
+
+        <div className='flex flex-col items-center justify-center p-4 bg-white rounded-md'>
+          <QRCodeSVG
+            id='document-qr-code'
+            value={url}
+            size={250}
+            level='H' // High error correction
+            marginSize={4} // Using marginSize instead of includeMargin
+          />
+        </div>
+
+        <div className='text-center mt-4 text-sm text-muted-foreground'>
+          <p>Scan this QR code to access the document</p>
+          <p className='mt-1'>Valid for 7 days</p>
+        </div>
+
+        <div className='flex justify-center mt-4'>
+          <Button onClick={handleDownloadQrCode} className='w-full'>
+            <Download className='mr-2 h-4 w-4' />
+            Download QR Code
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

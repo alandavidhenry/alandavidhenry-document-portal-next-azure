@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 interface PDFDocumentViewerProps {
-  fileName: string
+  readonly fileName: string
 }
 
 export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
@@ -30,7 +30,7 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
     const fetchPdf = async () => {
       setIsLoading(true)
       try {
-        // First get the SAS URL
+        // First get the SAS URL through our API
         const response = await fetch(
           `/api/documents/download?name=${encodeURIComponent(fileName)}`
         )
@@ -42,13 +42,17 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
 
         const { url } = await response.json()
 
-        // Then fetch the actual PDF data
-        const pdfResponse = await fetch(url)
-        if (!pdfResponse.ok) {
-          throw new Error('Failed to fetch PDF')
+        // IMPORTANT CHANGE: Use a server proxy to fetch the PDF to avoid CORS issues
+        // Instead of fetching directly from Azure Blob, we'll fetch through our own API
+        const proxyResponse = await fetch(
+          `/api/documents/proxy?url=${encodeURIComponent(url)}`
+        )
+
+        if (!proxyResponse.ok) {
+          throw new Error('Failed to fetch PDF from proxy')
         }
 
-        const arrayBuffer = await pdfResponse.arrayBuffer()
+        const arrayBuffer = await proxyResponse.arrayBuffer()
         setPdfData(new Uint8Array(arrayBuffer))
       } catch (err) {
         console.error('Error fetching PDF:', err)
@@ -60,6 +64,25 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
 
     fetchPdf()
   }, [fileName])
+
+  // Extract rendering of PDF content to a separate function
+  const renderPdfContent = () => {
+    if (isLoading) {
+      return <div className='flex justify-center p-4'>Loading...</div>
+    }
+
+    if (pdfData) {
+      return (
+        <div style={{ height: '750px' }}>
+          <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'>
+            <Viewer fileUrl={pdfData} plugins={[defaultLayoutPluginInstance]} />
+          </Worker>
+        </div>
+      )
+    }
+
+    return <div className='flex justify-center p-4'>No PDF data available</div>
+  }
 
   if (error) {
     return (
@@ -88,22 +111,7 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
           <h1 className='text-2xl font-bold'>{fileName}</h1>
         </div>
 
-        <Card className='p-6'>
-          {isLoading ? (
-            <div className='flex justify-center p-4'>Loading...</div>
-          ) : pdfData ? (
-            <div style={{ height: '750px' }}>
-              <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'>
-                <Viewer
-                  fileUrl={pdfData}
-                  plugins={[defaultLayoutPluginInstance]}
-                />
-              </Worker>
-            </div>
-          ) : (
-            <div className='flex justify-center p-4'>No PDF data available</div>
-          )}
-        </Card>
+        <Card className='p-6'>{renderPdfContent()}</Card>
       </div>
     </div>
   )
