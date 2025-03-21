@@ -111,6 +111,16 @@ resource "azurerm_storage_account" "documents" {
   account_replication_type = var.storage.account_replication_type
   min_tls_version          = var.storage.min_tls_version
 
+  blob_properties {
+    cors_rule {
+      allowed_headers    = ["*"]
+      allowed_methods    = ["GET", "HEAD", "OPTIONS"]
+      allowed_origins    = ["https://app-document-portal-next-azure-dev.azurewebsites.net"]
+      exposed_headers    = ["*"]
+      max_age_in_seconds = 86400
+    }
+  }
+
   tags = local.common_tags
 }
 
@@ -165,6 +175,18 @@ resource "azurerm_linux_web_app" "main" {
 
     health_check_path                 = "/api/health"
     health_check_eviction_time_in_min = 10
+  }
+
+  logs {
+    detailed_error_messages = false
+    failed_request_tracing  = false
+
+    http_logs {
+      file_system {
+        retention_in_days = 7
+        retention_in_mb   = 35
+      }
+    }
   }
 
   app_settings = {
