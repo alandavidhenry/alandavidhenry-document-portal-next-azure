@@ -17,6 +17,7 @@ import { useState } from 'react'
 
 import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -26,6 +27,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { toast } from '@/components/ui/use-toast'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface DataTableProps<TData, TValue> {
   readonly columns: ColumnDef<TData, TValue>[]
@@ -42,6 +44,9 @@ export function DataTable<TData, TValue>({
   const [isDeleting, setIsDeleting] = useState(false)
   // Add sorting state
   const [sorting, setSorting] = useState<SortingState>([])
+
+  // Use the media query hook
+  const isDesktop = useMediaQuery('(min-width: 768px)')
 
   // Get the table instance
   const table = useReactTable({
@@ -143,67 +148,151 @@ export function DataTable<TData, TValue>({
 
       {/* Table */}
       <div className='rounded-md border'>
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={
-                            header.column.getCanSort()
-                              ? 'cursor-pointer select-none flex items-center gap-1'
-                              : ''
-                          }
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                          {{
-                            asc: ' 🔼',
-                            desc: ' 🔽'
-                          }[header.column.getIsSorted() as string] ?? null}
-                        </div>
-                      )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+        {isDesktop ? (
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={
+                              header.column.getCanSort()
+                                ? 'cursor-pointer select-none flex items-center gap-1'
+                                : ''
+                            }
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                            {{
+                              asc: ' 🔼',
+                              desc: ' 🔽'
+                            }[header.column.getIsSorted() as string] ?? null}
+                          </div>
+                        )}
+                      </TableHead>
+                    )
+                  })}
                 </TableRow>
-              ))
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className='h-24 text-center'
+                  >
+                    No documents found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        ) : (
+          // Mobile card layout
+          <div className='space-y-4 p-4'>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => {
+                const nameCell = row
+                  .getVisibleCells()
+                  .find((cell) => cell.column.id === 'name')
+                const versionCell = row
+                  .getVisibleCells()
+                  .find((cell) => cell.column.id === 'version')
+                const actionsCell = row
+                  .getVisibleCells()
+                  .find((cell) => cell.column.id === 'actions')
+
+                return (
+                  <div
+                    key={row.id}
+                    className='p-4 border rounded-md space-y-2 bg-card'
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-2'>
+                        <Checkbox
+                          checked={row.getIsSelected()}
+                          onCheckedChange={(value) =>
+                            row.toggleSelected(!!value)
+                          }
+                          aria-label='Select row'
+                        />
+                        {/* Document name cell with icon */}
+                        {nameCell &&
+                          flexRender(
+                            nameCell.column.columnDef.cell,
+                            nameCell.getContext()
+                          )}
+                      </div>
+                    </div>
+
+                    <div className='grid grid-cols-2 gap-2 text-sm'>
+                      <div>
+                        <span className='text-muted-foreground'>Uploaded:</span>{' '}
+                        {row.getValue('uploadedAt')}
+                      </div>
+                      <div>
+                        <span className='text-muted-foreground'>Size:</span>{' '}
+                        {row.getValue('size')}
+                      </div>
+                      <div>
+                        <span className='text-muted-foreground'>Type:</span>{' '}
+                        {row.getValue('type')}
+                      </div>
+                    </div>
+
+                    <div className='flex justify-between items-center'>
+                      {/* Version info */}
+                      <div>
+                        {versionCell &&
+                          flexRender(
+                            versionCell.column.columnDef.cell,
+                            versionCell.getContext()
+                          )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className='flex space-x-1'>
+                        {actionsCell &&
+                          flexRender(
+                            actionsCell.column.columnDef.cell,
+                            actionsCell.getContext()
+                          )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
             ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className='h-24 text-center'
-                >
-                  No documents found.
-                </TableCell>
-              </TableRow>
+              <div className='text-center p-4 border rounded-md'>
+                No documents found.
+              </div>
             )}
-          </TableBody>
-        </Table>
+          </div>
+        )}
       </div>
 
       {/* Delete confirmation modal */}

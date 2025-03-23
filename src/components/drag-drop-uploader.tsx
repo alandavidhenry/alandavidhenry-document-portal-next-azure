@@ -143,20 +143,20 @@ export function DragDropUploader() {
   }, [])
 
   return (
-    <div className='relative'>
+    <div className='relative w-full sm:w-auto'>
       {/* Button to toggle the drag-drop uploader */}
       <Button
         onClick={toggleUploader}
         disabled={!session || isUploading}
-        className='flex items-center gap-2'
+        className='w-full sm:w-auto flex items-center gap-2'
       >
         <Upload className='h-4 w-4' />
-        {isVisible ? 'Hide Upload Area' : 'Upload Document'}
+        {isVisible ? 'Hide' : 'Upload Document'}
       </Button>
 
       {/* Animated Drag-Drop Area - Positioned absolutely */}
       <div
-        className={`absolute right-0 z-10 w-full md:w-[600px] lg:w-[800px] transition-all duration-300 ease-in-out ${
+        className={`absolute right-0 z-10 w-full transition-all duration-300 ease-in-out ${
           isVisible ? 'opacity-100 top-12 visible' : 'opacity-0 top-0 invisible'
         }`}
       >
@@ -164,7 +164,7 @@ export function DragDropUploader() {
           role='button'
           tabIndex={0}
           aria-label='Drop files here to upload'
-          className={`border-2 border-dashed rounded-lg p-6 md:p-8 lg:p-10 transition-colors shadow-lg bg-background ${
+          className={`border-2 border-dashed rounded-lg p-4 sm:p-6 md:p-8 transition-colors shadow-lg bg-background ${
             isDragging
               ? 'border-primary bg-primary/10'
               : 'border-border hover:border-primary/50'
@@ -177,24 +177,12 @@ export function DragDropUploader() {
             session &&
             document.getElementById('file-input')?.click()
           }
-          onKeyDown={(e) => {
-            if (
-              (e.key === 'Enter' || e.key === ' ') &&
-              !isUploading &&
-              session
-            ) {
-              e.preventDefault()
-              document.getElementById('file-input')?.click()
-            }
-          }}
         >
-          <div className='flex flex-col items-center justify-center gap-2 md:gap-4 text-center py-4 md:py-8 lg:py-12'>
-            <Upload className='h-10 w-10 md:h-12 md:w-12 lg:h-16 lg:w-16 text-muted-foreground' />
-            <h3 className='text-lg md:text-xl lg:text-2xl font-medium'>
-              Drag & Drop File Here
-            </h3>
-            <p className='text-sm md:text-base text-muted-foreground'>
-              or click to browse files
+          <div className='flex flex-col items-center justify-center gap-2 text-center py-4'>
+            <Upload className='h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground' />
+            <h3 className='text-lg font-medium'>Upload File</h3>
+            <p className='text-sm text-muted-foreground'>
+              Tap to browse or drop files
             </p>
             <label className='mt-2 md:mt-4'>
               <Button

@@ -4,10 +4,11 @@ import { Viewer, Worker } from '@react-pdf-viewer/core'
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 
 import '@react-pdf-viewer/core/lib/styles/index.css'
 import '@react-pdf-viewer/default-layout/lib/styles/index.css'
+import '@react-pdf-viewer/zoom/lib/styles/index.css'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -28,6 +29,7 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
   const [totalVersions, setTotalVersions] = useState<number>(1)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [currentFileName, setCurrentFileName] = useState(fileName)
+  const viewerContainerRef = useRef<HTMLDivElement>(null)
 
   // Extract original file name for display
   const { baseName, extension } = parseFileName(fileName)
@@ -35,6 +37,37 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
 
   // Initialize the default layout plugin
   const defaultLayoutPluginInstance = defaultLayoutPlugin()
+
+  // Add custom CSS for better mobile experience
+  useEffect(() => {
+    // Add custom CSS for mobile optimization
+    const style = document.createElement('style')
+    style.textContent = `
+      /* Larger touch targets for toolbar buttons on mobile */
+      @media (max-width: 768px) {
+        .rpv-core__minimal-button {
+          padding: 8px !important;
+          margin: 2px !important;
+        }
+        
+        /* Increase size of page navigation buttons */
+        .rpv-core__page-navigation-button {
+          min-width: 40px !important;
+          height: 40px !important;
+        }
+        
+        /* Make the page input wider */
+        .rpv-core__page-navigation-current-page-input {
+          width: 3rem !important;
+        }
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
 
   // Fetch PDF data
   const fetchPdf = useCallback(async (fileNameToFetch: string) => {
@@ -164,7 +197,11 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
 
     if (pdfData) {
       return (
-        <div style={{ height: '750px' }}>
+        <div
+          ref={viewerContainerRef}
+          className='h-[500px] md:h-[750px] overflow-hidden rounded-md'
+          style={{ maxHeight: 'calc(100vh - 200px)' }}
+        >
           <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'>
             <Viewer fileUrl={pdfData} plugins={[defaultLayoutPluginInstance]} />
           </Worker>
@@ -198,13 +235,20 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
   return (
     <div className='container mx-auto py-4'>
       <div className='flex flex-col gap-4'>
-        <div className='flex items-center justify-between'>
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
           <div className='flex items-center gap-2'>
-            <Button variant='ghost' onClick={() => router.back()}>
-              <ArrowLeft className='h-4 w-4 mr-2' />
-              Back
+            {/* Make the back button larger on mobile */}
+            <Button
+              variant='ghost'
+              onClick={() => router.back()}
+              className='h-10 w-10 p-0 sm:h-9 sm:w-auto sm:px-4'
+            >
+              <ArrowLeft className='h-5 w-5 sm:h-4 sm:w-4 sm:mr-2' />
+              <span className='hidden sm:inline'>Back</span>
             </Button>
-            <h1 className='text-2xl font-bold'>{displayName}</h1>
+            <h1 className='text-xl sm:text-2xl font-bold truncate max-w-[200px] sm:max-w-none'>
+              {displayName}
+            </h1>
           </div>
 
           {/* Version selector */}
@@ -217,7 +261,15 @@ export function PDFDocumentViewer({ fileName }: PDFDocumentViewerProps) {
           />
         </div>
 
-        <Card className='p-6'>{renderPdfContent()}</Card>
+        <Card className='p-2 sm:p-6'>
+          {renderPdfContent()}
+
+          {/* Add instruction for mobile users */}
+          <div className='md:hidden text-center text-sm text-muted-foreground mt-4'>
+            Use toolbar to zoom • Pinch to zoom in/out • Double-tap to reset
+            zoom
+          </div>
+        </Card>
       </div>
 
       {/* Version upload modal */}

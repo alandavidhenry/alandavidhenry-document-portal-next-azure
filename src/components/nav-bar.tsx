@@ -74,6 +74,7 @@ export function NavBar() {
               variant='ghost'
               size='icon'
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className='h-10 w-10'
             >
               <Menu className='h-6 w-6' />
             </Button>
@@ -82,7 +83,7 @@ export function NavBar() {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className='md:hidden py-2 space-y-1'>
+          <div className='md:hidden py-4 space-y-2 border-t animate-in slide-in-from-top'>
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -98,7 +99,7 @@ export function NavBar() {
                 {item.name}
               </Link>
             ))}
-            <div className='pt-2'>
+            <div className='pt-2 px-2'>
               {session ? (
                 <Button
                   variant='outline'
@@ -108,7 +109,10 @@ export function NavBar() {
                   Sign Out
                 </Button>
               ) : (
-                <Button className='w-full' onClick={handleSignIn}>
+                <Button
+                  className='w-full py-3 text-base'
+                  onClick={handleSignIn}
+                >
                   Sign In
                 </Button>
               )}

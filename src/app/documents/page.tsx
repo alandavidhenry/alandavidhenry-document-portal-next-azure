@@ -12,13 +12,11 @@ export default async function DocumentsPage() {
 
   return (
     <div className='grid gap-4'>
-      {/* Fixed header with heading and upload button */}
-      <div className='flex items-center justify-between'>
-        <h1 className='text-3xl font-bold'>Documents</h1>
+      <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 md:px-0'>
+        <h1 className='text-2xl sm:text-3xl font-bold'>Documents</h1>
         <DragDropUploader />
       </div>
 
-      {/* Data table */}
       <DataTable columns={columns} data={documents} />
     </div>
   )
