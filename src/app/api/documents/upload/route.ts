@@ -2,6 +2,12 @@ import { BlobServiceClient } from '@azure/storage-blob'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 
+import {
+  parseFileName,
+  createVersionedFileName,
+  generateVersionId
+} from '@/lib/version-manager'
+
 export async function POST(request: NextRequest) {
   // Check authentication
   const session = await getServerSession()
@@ -12,6 +18,8 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const isNewVersion = formData.get('isNewVersion') === 'true'
+    const originalFileName = formData.get('originalFileName') as string | null
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
@@ -41,21 +49,22 @@ export async function POST(request: NextRequest) {
       process.env.AZURE_STORAGE_CONTAINER_NAME!
     )
 
-    // Check if file already exists and append timestamp if it does
     let fileName = file.name
-    const blobClient = containerClient.getBlockBlobClient(fileName)
-    const exists = await blobClient.exists()
 
-    if (exists) {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      const extension =
-        fileName.lastIndexOf('.') > 0
-          ? fileName.substring(fileName.lastIndexOf('.'))
-          : ''
-      const baseName = extension
-        ? fileName.substring(0, fileName.lastIndexOf('.'))
-        : fileName
-      fileName = `${baseName}_${timestamp}${extension}`
+    if (isNewVersion && originalFileName) {
+      // This is a new version of an existing file
+      const { baseName, extension } = parseFileName(originalFileName)
+      const versionId = generateVersionId()
+      fileName = createVersionedFileName(`${baseName}${extension}`, versionId)
+    } else {
+      // Check if file already exists and make it a version if it does
+      const blobClient = containerClient.getBlockBlobClient(fileName)
+      const exists = await blobClient.exists()
+
+      if (exists) {
+        const versionId = generateVersionId()
+        fileName = createVersionedFileName(fileName, versionId)
+      }
     }
 
     const uploadBlobClient = containerClient.getBlockBlobClient(fileName)
@@ -67,7 +76,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'File uploaded successfully',
-      fileName: fileName
+      fileName: fileName,
+      isVersion: isNewVersion || fileName !== file.name
     })
   } catch (error) {
     console.error('Upload error:', error)

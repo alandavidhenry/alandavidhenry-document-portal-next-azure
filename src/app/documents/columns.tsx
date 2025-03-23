@@ -1,15 +1,25 @@
+// src/app/documents/columns.tsx
 'use client'
 
 import { ColumnDef } from '@tanstack/react-table'
-import { Download, FileIcon, QrCode, Share2 } from 'lucide-react'
+import { Clock, Download, FileIcon, QrCode, Share2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useState } from 'react'
 
 import { QrCodeModal } from '@/components/qr-code-modal'
 import { ShareModal } from '@/components/share-modal'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { toast } from '@/components/ui/use-toast'
+import { VersionUploadModal } from '@/components/version-upload-modal'
+import { parseFileName } from '@/lib/version-manager'
 
 export type Document = {
   id: string
@@ -17,18 +27,33 @@ export type Document = {
   uploadedAt: string
   type: string
   size: string
+  hasVersions: boolean
+  versionNumber?: number
+  totalVersions?: number
+  originalName?: string
 }
 
 function DocumentNameCell({
   name,
-  type
+  type,
+  hasVersions,
+  versionNumber,
+  totalVersions,
+  originalName
 }: {
   readonly name: string
   readonly type: string
+  readonly hasVersions: boolean
+  readonly versionNumber?: number
+  readonly totalVersions?: number
+  readonly originalName?: string
 }) {
   const router = useRouter()
   const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(false)
+
+  const { baseName, extension } = parseFileName(name)
+  const displayName = originalName ?? `${baseName}${extension}`
 
   const handleClick = async () => {
     if (!session || isLoading) return
@@ -79,8 +104,25 @@ function DocumentNameCell({
         className='hover:underline text-blue-600 disabled:text-gray-400'
         disabled={!session || isLoading}
       >
-        {isLoading ? 'Loading...' : name}
+        {isLoading ? 'Loading...' : displayName}
       </button>
+
+      {hasVersions && versionNumber && totalVersions && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant='outline' className='flex items-center gap-1 ml-2'>
+                <Clock className='h-3 w-3' />v{versionNumber}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                Version {versionNumber} of {totalVersions}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
     </div>
   )
 }
@@ -139,6 +181,11 @@ function ShareCell({ name }: { readonly name: string }) {
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [showQrCode, setShowQrCode] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showVersionUploadModal, setShowVersionUploadModal] = useState(false)
+
+  // Extract original name for display and versioning
+  const { baseName, extension } = parseFileName(name)
+  const originalName = `${baseName}${extension}`
 
   const generateShareUrl = async (
     expirationDays: number = 7
@@ -229,6 +276,96 @@ function ShareCell({ name }: { readonly name: string }) {
           onShareGenerated={handleShareGenerated}
         />
       )}
+
+      {/* Version Upload Modal */}
+      {showVersionUploadModal && (
+        <VersionUploadModal
+          originalFileName={originalName}
+          onClose={() => setShowVersionUploadModal(false)}
+          onVersionUploaded={() => window.location.reload()}
+        />
+      )}
+    </>
+  )
+}
+
+function VersionCell({
+  name,
+  hasVersions,
+  versionNumber,
+  totalVersions
+}: {
+  readonly name: string
+  readonly hasVersions: boolean
+  readonly versionNumber?: number
+  readonly totalVersions?: number
+}) {
+  const { data: session } = useSession()
+  const router = useRouter()
+  const [showVersionUploadModal, setShowVersionUploadModal] = useState(false)
+
+  // Extract original name for display and versioning
+  const { baseName, extension } = parseFileName(name)
+  const originalName = `${baseName}${extension}`
+
+  const handleShowVersions = () => {
+    if (!session) return
+
+    // If it's a PDF, navigate to the PDF viewer which has version controls
+    if (name.toLowerCase().endsWith('.pdf')) {
+      router.push(`/documents/view/${encodeURIComponent(name)}`)
+    } else {
+      // For non-PDFs, we need a different approach - could be a modal with version list
+      // For now, just show a message
+      toast({
+        title: 'Version management',
+        description: 'Version management for non-PDF files is coming soon.'
+      })
+    }
+  }
+
+  const handleNewVersion = () => {
+    if (!session) return
+    setShowVersionUploadModal(true)
+  }
+
+  return (
+    <>
+      <div className='flex items-center gap-2'>
+        {hasVersions ? (
+          <Button
+            variant='ghost'
+            size='sm'
+            className='text-xs'
+            onClick={handleShowVersions}
+            disabled={!session}
+          >
+            <Clock className='h-3 w-3 mr-1' />
+            {versionNumber && totalVersions
+              ? `v${versionNumber}/${totalVersions}`
+              : 'Versions'}
+          </Button>
+        ) : (
+          <Button
+            variant='ghost'
+            size='sm'
+            className='text-xs'
+            onClick={handleNewVersion}
+            disabled={!session}
+          >
+            New Version
+          </Button>
+        )}
+      </div>
+
+      {/* Version Upload Modal */}
+      {showVersionUploadModal && (
+        <VersionUploadModal
+          originalFileName={originalName}
+          onClose={() => setShowVersionUploadModal(false)}
+          onVersionUploaded={() => window.location.reload()}
+        />
+      )}
     </>
   )
 }
@@ -241,6 +378,10 @@ export const columns: ColumnDef<Document>[] = [
       <DocumentNameCell
         name={row.getValue('name')}
         type={row.getValue('type')}
+        hasVersions={row.original.hasVersions}
+        versionNumber={row.original.versionNumber}
+        totalVersions={row.original.totalVersions}
+        originalName={row.original.originalName}
       />
     )
   },
@@ -255,6 +396,18 @@ export const columns: ColumnDef<Document>[] = [
   {
     accessorKey: 'size',
     header: 'Size'
+  },
+  {
+    id: 'version',
+    header: 'Version',
+    cell: ({ row }) => (
+      <VersionCell
+        name={row.getValue('name')}
+        hasVersions={row.original.hasVersions}
+        versionNumber={row.original.versionNumber}
+        totalVersions={row.original.totalVersions}
+      />
+    )
   },
   {
     id: 'actions',
