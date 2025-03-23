@@ -65,6 +65,9 @@ export function DragDropUploader() {
           duration: 3000
         })
 
+        // Close the upload area after successful upload
+        setIsVisible(false)
+
         // Refresh the page to show the new document
         router.refresh()
       } catch (error) {
