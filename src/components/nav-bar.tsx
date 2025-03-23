@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useState } from 'react'
 
+import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 
 // Define navigation items
@@ -54,8 +55,9 @@ export function NavBar() {
             ))}
           </div>
 
-          {/* Auth Button */}
-          <div className='hidden md:block'>
+          {/* Theme Toggle and Auth Button */}
+          <div className='hidden md:flex md:items-center md:space-x-2'>
+            <ThemeToggle />
             {session ? (
               <Button variant='outline' onClick={() => signOut()}>
                 Sign Out
@@ -66,7 +68,8 @@ export function NavBar() {
           </div>
 
           {/* Mobile menu button */}
-          <div className='md:hidden'>
+          <div className='md:hidden flex items-center space-x-2'>
+            <ThemeToggle />
             <Button
               variant='ghost'
               size='icon'
