@@ -1,4 +1,3 @@
-// src/app/documents/columns.tsx
 'use client'
 
 import { ColumnDef } from '@tanstack/react-table'
@@ -13,6 +12,7 @@ import { ShareModal } from '@/components/share-modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { SortArrows } from '@/components/ui/data-table/sort-arrows'
 import {
   Tooltip,
   TooltipContent,
@@ -474,7 +474,15 @@ export const columns: ColumnDef<Document>[] = [
   // Document details columns
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: ({ column }) => (
+      <div className='flex items-center cursor-pointer'>
+        Name
+        <SortArrows
+          sorted={!!column.getIsSorted()}
+          direction={column.getIsSorted() || false}
+        />
+      </div>
+    ),
     cell: ({ row }) => (
       <DocumentNameCell
         name={row.getValue('name')}
@@ -484,19 +492,71 @@ export const columns: ColumnDef<Document>[] = [
         totalVersions={row.original.totalVersions}
         originalName={row.original.originalName}
       />
-    )
+    ),
+    enableSorting: true
   },
   {
     accessorKey: 'uploadedAt',
-    header: 'Upload Date'
+    header: ({ column }) => (
+      <div className='flex items-center cursor-pointer'>
+        Upload Date
+        <SortArrows
+          sorted={!!column.getIsSorted()}
+          direction={column.getIsSorted() || false}
+        />
+      </div>
+    ),
+    enableSorting: true
   },
   {
     accessorKey: 'type',
-    header: 'Type'
+    header: ({ column }) => (
+      <div className='flex items-center cursor-pointer'>
+        Type
+        <SortArrows
+          sorted={!!column.getIsSorted()}
+          direction={column.getIsSorted() || false}
+        />
+      </div>
+    ),
+    enableSorting: true
   },
   {
     accessorKey: 'size',
-    header: 'Size'
+    header: ({ column }) => (
+      <div className='flex items-center cursor-pointer'>
+        Size
+        <SortArrows
+          sorted={!!column.getIsSorted()}
+          direction={column.getIsSorted() || false}
+        />
+      </div>
+    ),
+    enableSorting: true,
+    sortingFn: (rowA, rowB, columnId) => {
+      // Custom sorting function for size (converts "1.5 MB" to bytes for proper comparison)
+      const getSizeInBytes = (sizeStr: string) => {
+        const units: { [key: string]: number } = {
+          Bytes: 1,
+          KB: 1024,
+          MB: 1024 * 1024,
+          GB: 1024 * 1024 * 1024
+        }
+
+        const parts = sizeStr.split(' ')
+        if (parts.length !== 2) return 0
+
+        const value = parseFloat(parts[0])
+        const unit = parts[1]
+
+        return value * (units[unit] || 1)
+      }
+
+      const sizeA = getSizeInBytes(rowA.getValue(columnId))
+      const sizeB = getSizeInBytes(rowB.getValue(columnId))
+
+      return sizeA - sizeB
+    }
   },
   {
     id: 'version',
@@ -508,16 +568,19 @@ export const columns: ColumnDef<Document>[] = [
         versionNumber={row.original.versionNumber}
         totalVersions={row.original.totalVersions}
       />
-    )
+    ),
+    enableSorting: false
   },
   {
     id: 'actions',
+    header: 'Actions',
     cell: ({ row }) => (
       <div className='flex space-x-1'>
         <DownloadCell name={row.getValue('name')} />
         <ShareCell name={row.getValue('name')} />
         <DeleteCell name={row.getValue('name')} />
       </div>
-    )
+    ),
+    enableSorting: false
   }
 ]

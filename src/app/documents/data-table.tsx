@@ -7,7 +7,9 @@ import {
   useReactTable,
   getPaginationRowModel,
   getFilteredRowModel,
-  RowSelectionState
+  RowSelectionState,
+  getSortedRowModel,
+  SortingState
 } from '@tanstack/react-table'
 import { Trash2 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
@@ -38,6 +40,8 @@ export function DataTable<TData, TValue>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  // Add sorting state
+  const [sorting, setSorting] = useState<SortingState>([])
 
   // Get the table instance
   const table = useReactTable({
@@ -46,9 +50,12 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
     state: {
-      rowSelection
+      rowSelection,
+      sorting
     }
   })
 
@@ -143,12 +150,25 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={
+                            header.column.getCanSort()
+                              ? 'cursor-pointer select-none flex items-center gap-1'
+                              : ''
+                          }
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
                             header.column.columnDef.header,
                             header.getContext()
                           )}
+                          {{
+                            asc: ' 🔼',
+                            desc: ' 🔽'
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </div>
+                      )}
                     </TableHead>
                   )
                 })}
