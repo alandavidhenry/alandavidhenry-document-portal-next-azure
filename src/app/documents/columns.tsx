@@ -2,15 +2,17 @@
 'use client'
 
 import { ColumnDef } from '@tanstack/react-table'
-import { Clock, Download, FileIcon, QrCode, Share2 } from 'lucide-react'
+import { Clock, Download, FileIcon, QrCode, Share2, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useState } from 'react'
 
+import { DeleteConfirmationModal } from '@/components/delete-confirmation-modal'
 import { QrCodeModal } from '@/components/qr-code-modal'
 import { ShareModal } from '@/components/share-modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Tooltip,
   TooltipContent,
@@ -370,7 +372,106 @@ function VersionCell({
   )
 }
 
+function DeleteCell({ name }: { readonly name: string }) {
+  const { data: session } = useSession()
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
+
+  const handleDeleteClick = () => {
+    if (!session || isDeleting) return
+    setShowConfirmation(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!session || isDeleting) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(
+        `/api/documents/delete?name=${encodeURIComponent(name)}`,
+        {
+          method: 'DELETE'
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Delete failed')
+      }
+
+      toast({
+        title: 'Document deleted',
+        description: `${name} has been deleted successfully.`,
+        duration: 3000
+      })
+
+      // Refresh the page to update the document list
+      window.location.reload()
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast({
+        title: 'Delete failed',
+        description:
+          error instanceof Error ? error.message : 'Failed to delete document',
+        variant: 'destructive',
+        duration: 3000
+      })
+    } finally {
+      setIsDeleting(false)
+      setShowConfirmation(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant='ghost'
+        size='icon'
+        onClick={handleDeleteClick}
+        disabled={!session || isDeleting}
+        className='text-destructive hover:text-destructive'
+        title='Delete'
+      >
+        <Trash2 className={isDeleting ? 'animate-pulse' : ''} />
+      </Button>
+
+      {showConfirmation && (
+        <DeleteConfirmationModal
+          fileNames={name}
+          onConfirm={confirmDelete}
+          onCancel={() => setShowConfirmation(false)}
+          isDeleting={isDeleting}
+        />
+      )}
+    </>
+  )
+}
+
 export const columns: ColumnDef<Document>[] = [
+  // Selection column
+  {
+    id: 'select',
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && 'indeterminate')
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label='Select all'
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label='Select row'
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false
+  },
+  // Document details columns
   {
     accessorKey: 'name',
     header: 'Name',
@@ -415,6 +516,7 @@ export const columns: ColumnDef<Document>[] = [
       <div className='flex space-x-1'>
         <DownloadCell name={row.getValue('name')} />
         <ShareCell name={row.getValue('name')} />
+        <DeleteCell name={row.getValue('name')} />
       </div>
     )
   }
