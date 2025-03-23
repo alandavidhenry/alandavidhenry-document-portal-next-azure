@@ -17,6 +17,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    // Validate file size (optional)
+    const maxSize = 50 * 1024 * 1024 // 50MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        {
+          error: 'File size exceeds 50MB limit'
+        },
+        { status: 400 }
+      )
+    }
+
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()
     // Convert ArrayBuffer to Buffer
@@ -29,17 +40,34 @@ export async function POST(request: NextRequest) {
     const containerClient = blobServiceClient.getContainerClient(
       process.env.AZURE_STORAGE_CONTAINER_NAME!
     )
-    const blobClient = containerClient.getBlockBlobClient(file.name)
 
-    await blobClient.uploadData(buffer, {
+    // Check if file already exists and append timestamp if it does
+    let fileName = file.name
+    const blobClient = containerClient.getBlockBlobClient(fileName)
+    const exists = await blobClient.exists()
+
+    if (exists) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const extension =
+        fileName.lastIndexOf('.') > 0
+          ? fileName.substring(fileName.lastIndexOf('.'))
+          : ''
+      const baseName = extension
+        ? fileName.substring(0, fileName.lastIndexOf('.'))
+        : fileName
+      fileName = `${baseName}_${timestamp}${extension}`
+    }
+
+    const uploadBlobClient = containerClient.getBlockBlobClient(fileName)
+    await uploadBlobClient.uploadData(buffer, {
       blobHTTPHeaders: {
-        blobContentType: file.type
+        blobContentType: file.type || 'application/octet-stream'
       }
     })
 
     return NextResponse.json({
       message: 'File uploaded successfully',
-      fileName: file.name
+      fileName: fileName
     })
   } catch (error) {
     console.error('Upload error:', error)

@@ -1,4 +1,4 @@
-import { UploadButton } from '@/components/upload-button'
+import { DragDropUploader } from '@/components/drag-drop-uploader'
 import { listBlobs } from '@/lib/list-blobs'
 
 import { columns } from './columns'
@@ -12,10 +12,13 @@ export default async function DocumentsPage() {
 
   return (
     <div className='grid gap-4'>
+      {/* Fixed header with heading and upload button */}
       <div className='flex items-center justify-between'>
         <h1 className='text-3xl font-bold'>Documents</h1>
-        <UploadButton />
+        <DragDropUploader />
       </div>
+
+      {/* Data table */}
       <DataTable columns={columns} data={documents} />
     </div>
   )
