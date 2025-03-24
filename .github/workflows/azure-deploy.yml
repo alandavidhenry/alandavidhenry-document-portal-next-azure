@@ -70,4 +70,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_APP_NAME }}
-          images: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          images: ghcr.io/${{ github.repository }}:${{ env.DEPLOY_ENV == 'prod' && 'latest' || 'dev-latest' }}
